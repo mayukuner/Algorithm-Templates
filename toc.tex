@@ -1,3 +1,16 @@
 %\setcounter{page}{0}
 \renewcommand{\contentsname}{\centerline{\Large \bf 目录}}
 \tableofcontents
+\thispagestyle{fancy} % IEEE模板在\maketitle后会自动声明\thispagestyle{plain}，  
+                      % 导致第一页什么都没有。所以得把plain更改为fancy  
+\lhead{} % 页眉左，需要东西的话就在{}内添加  
+\chead{} % 页眉中  
+\rhead{} % 页眉右  
+\lfoot{} % 页眉左  
+\cfoot{\thepage} % 页眉中  
+\rfoot{} %页眉右，\thepage 表示当前页码  
+\renewcommand{\headrulewidth}{0pt} %改为0pt即可去掉页眉下面的横线  
+\renewcommand{\footrulewidth}{0pt} %改为0pt即可去掉页脚上面的横线
+\pagestyle{fancy}
+\cfoot{\thepage}
+
