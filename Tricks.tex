@@ -1,0 +1,61 @@
+\section{小技巧}
+
+\subsection{Emacs配置文件}
+\begin{lstlisting}[language=Lisp]
+;;compile and run
+(defun comp_run ()
+  (interactive)
+  (save-some-buffers t)
+  (setq file_name (buffer-file-name(current-buffer)))
+  (setq short_file_name (substring (buffer-file-name(current-buffer)) (string-match "[^/]*$" file_name) (string-match "[.][A-Za-z]*$" file_name)))
+  (compile (concat "g++ \"" file_name "\" -o \"" short_file_name ".out\" -lm -DQWERTIER -g --std=gnu++11 -Wall && ./" short_file_name ".out"))
+)
+(global-set-key (kbd "M-#") 'comp_run)
+(global-set-key [(f9)] 'comp_run)
+\end{lstlisting}
+
+\subsection{两个long long相乘，对long long取模}
+\begin{lstlisting}
+LL fMul(LL t, LL p) {
+  static long double eps = 1e-15;
+  LL ret = t * p - (LL)((long double)t/MOD*p+eps)*MOD;
+  if (ret < 0)
+    return (ret % MOD + MOD) % MOD;
+  else
+    return ret;
+}
+\end{lstlisting}
+\subsection{读入优化}
+\begin{lstlisting}
+namespace IStream{  
+const int L=1<<20;
+char buffer[L], *S, *T;
+inline char get_char() {
+  if(S==T) {
+    T = (S = buffer) + fread(buffer, 1, L, stdin);
+    if (S == T) return EOF;
+  }
+  return *S++;
+}
+inline int get_int() {
+  char c;
+  int re = 0, nega = 0;
+  for (c = get_char(); (c < '0' || c > '9') && c != '-'; c = get_char());
+  if (c == '-') {
+    nega = 1;
+    c = get_char();
+  }
+  while (c >= '0' && c <= '9')
+    re = (re << 1) + (re << 3) + (c - '0'), c = get_char();
+  if (!nega)
+    return re;
+  else
+    return re * -1;
+}
+inline char get_alpha() {
+  char c;
+  for (c = get_char(); (c < 'a' || c > 'z') && (c < 'A' || c > 'Z'); c = get_char());
+  return c;
+}
+}
+\end{lstlisting}

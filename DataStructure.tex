@@ -1,0 +1,381 @@
+\section{数据结构}
+
+\subsection{树链剖分}
+
+\begin{lstlisting}
+/*
+  SDOI 2012 染色： 给定一棵树，节点有色。现有两种查询：
+  1. 修改某点的颜色
+  2. 查询一条链上不同的颜色段数
+*/
+#include <algorithm>
+#include <stdio.h>
+#include <string.h>
+#include <map>
+#define PROB
+#define N 100010
+#define For(i,n) for(int i=1; i<=n; i++)
+using namespace std;
+
+int n;
+
+int le[N],pe[N<<1],ev[N<<1],ecnt;
+void addEdge(int u,int v){
+  ecnt++;
+  pe[ecnt]=le[u];
+  le[u]=ecnt;
+  ev[ecnt]=v;
+}
+
+int ori[N],a[N];
+
+#define lc (o<<1)
+#define rc (o<<1|1)
+#define mid ((l+r)>>1)
+int cl[N<<2],cr[N<<2],sumv[N<<2],setv[N<<2],L,R,setc;
+inline void maintain(int o){
+  cl[o]=cl[lc];
+  cr[o]=cr[rc];
+  sumv[o]=sumv[lc]+sumv[rc]-(cr[lc]==cl[rc]);
+}
+inline void pushdown(int o){
+  if(setv[o]!=-1){
+    cl[lc]=cr[lc]=setv[lc]=setv[o];
+    sumv[lc]=1;
+    cl[rc]=cr[rc]=setv[rc]=setv[o];
+    sumv[rc]=1;
+    setv[o]=-1;
+  }
+}
+void build(int o=1,int l=1,int r=n){
+  if(l==r){
+    cl[o]=cr[o]=a[l];
+    sumv[o]=1;
+    return;
+  }
+  build(lc,l,mid);
+  build(rc,mid+1,r);
+  maintain(o);
+}
+void update(int o=1,int l=1,int r=n){
+  if(L<=l&&r<=R){
+    cl[o]=cr[o]=setv[o]=setc;
+    sumv[o]=1;
+    return;
+  }
+  pushdown(o);
+  if(L<=mid)update(lc,l,mid);
+  if(R>mid)update(rc,mid+1,r);
+  maintain(o);
+}
+struct ANS{
+  int cl,cr,sumv;
+  ANS(int a,int b,int c):cl(a),cr(b),sumv(c){}
+  ANS operator+(const ANS& r){
+    return ANS(cl,r.cr,sumv+r.sumv-(cr==r.cl));
+  }
+};
+ANS query(int o=1,int l=1,int r=n){
+  if(L<=l&&r<=R)
+    return ANS(cl[o],cr[o],sumv[o]);
+  pushdown(o);
+  if(R<=mid)return query(lc,l,mid);
+  if(L>mid)return query(rc,mid+1,r);
+  return query(lc,l,mid)+query(rc,mid+1,r);
+}
+
+int fa[N],sz[N],hson[N],dep[N];
+void dfs1(int u){
+  sz[u]=1;
+  for(int i=le[u]; i; i=pe[i]){
+    int &v=ev[i];
+    if(v==fa[u])continue;
+    fa[v]=u;
+    dep[v]=dep[u]+1;
+    dfs1(v);
+    sz[u]+=sz[v];
+    if(sz[v]>sz[hson[u]])hson[u]=v;
+  }
+}
+int dfs_clock,top[N],id[N];
+void dfs2(int u){
+  id[u]=++dfs_clock;
+  if(hson[u]){
+    top[hson[u]]=top[u];
+    dfs2(hson[u]);
+  }
+  for(int i=le[u]; i; i=pe[i]){
+    int &v=ev[i];
+    if(v==fa[u] || v==hson[u])continue;
+    top[v]=v;
+    dfs2(v);
+  }
+}
+
+int Query(int u,int v){
+  ANS ans1(-1,-1,0),ans2(-2,-2,0);
+  while(top[u]!=top[v]){
+    if(dep[top[u]]>dep[top[v]]){
+      L=id[top[u]],R=id[u];
+      ANS q=query();
+      ans1=q+ans1;
+      u=fa[top[u]];
+    }else{
+      L=id[top[v]],R=id[v];
+      ANS q=query();
+      ans2=q+ans2;
+      v=fa[top[v]];
+    }
+  }
+  if(dep[u]>dep[v]){
+    L=id[v],R=id[u];
+    ANS q=query();
+    swap(ans2.cr,ans2.cl);
+    return (ans2+q+ans1).sumv;
+  }else{
+    L=id[u],R=id[v];
+    ANS q=query();
+    swap(ans1.cl,ans1.cr);
+    return (ans1+q+ans2).sumv;
+  }
+}
+void Modify(int u,int v,int c){
+  while(top[u]!=top[v]){
+    if(dep[top[u]]<dep[top[v]])swap(u,v);
+    L=id[top[u]],R=id[u];
+    update();
+    u=fa[top[u]];
+  }
+  if(dep[u]<dep[v])swap(u,v);
+  L=id[v],R=id[u];
+  update();
+}
+int m;
+char op[10];
+int main(){
+#ifndef ONLINE_JUDGE
+  freopen("in.txt","r",stdin);
+#endif
+  scanf("%d%d",&n,&m);
+  For(i,n)scanf("%d",&ori[i]);
+  For(i,n-1){
+    int u,v;
+    scanf("%d%d",&u,&v);
+    addEdge(u,v);
+    addEdge(v,u);
+  }
+  dfs1(1);
+  top[1]=1;
+  dfs2(1);
+  For(i,n)a[id[i]]=ori[i];
+  memset(setv,-1,sizeof(setv));
+  build();
+  while(m--){
+    int u,v,c;
+    scanf("%s",op);
+    if(op[0]=='Q'){
+      scanf("%d%d",&u,&v);
+      printf("%d\n",Query(u,v));
+    }else{
+      scanf("%d%d%d",&u,&v,&setc);
+      Modify(u,v,c);
+    }
+  }
+  return 0;
+}
+
+\end{lstlisting}
+
+\subsection{Link-Cut Tree}
+
+\begin{lstlisting}
+/*
+  水管局局长加强版：加边，维护最小生成树（森林）
+*/
+#include<stdio.h>
+#include<algorithm>
+#include<cstring>
+#include<vector>
+#include<map>
+#include<set>
+#define REP(i,b,e) for(int i=b; i<=e; i++)
+#define RREP(i,b,e) for(int i=b; i>=e; i--)
+
+int getint(){
+  char ch = getchar();
+  for ( ; ch > '9' || ch < '0'; ch = getchar());
+  int tmp = 0;
+  for ( ; '0' <= ch && ch <= '9'; ch = getchar())
+    tmp = tmp * 10 + int(ch) - 48;
+  return tmp;
+} 
+
+using namespace std;
+#define N 100010
+#define M 1000010
+
+int pa[N];
+int findset(int u){
+  if(pa[u]!=u)pa[u]=findset(pa[u]);
+  return pa[u];
+}
+
+struct Node{
+  int v,rev,maxv;
+  int ch[2],fa,pfa;
+  inline void pushdown();
+  inline void maintain();
+  inline void change(int,int);
+}node[N+M];
+inline void Node::pushdown(){
+  if(rev){
+    node[ch[0]].rev^=1;
+    node[ch[1]].rev^=1;
+    swap(ch[0],ch[1]);
+    rev=0;
+  }
+}
+inline void Node::maintain(){
+  maxv=max(v,max(node[ch[0]].maxv,node[ch[1]].maxv));
+}
+inline void Node::change(int v,int cur){
+  node[v].fa=node[ch[1]].pfa=cur;
+  node[v].pfa=node[ch[1]].fa=0;
+  ch[1]=v;
+  maintain();
+}
+void rotate(int o,int d){
+  int k=node[o].ch[d];
+  node[o].ch[d]=node[k].ch[1^d];
+  node[node[k].ch[1^d]].fa=o;
+
+  int d2=node[node[o].fa].ch[1]==o;
+  node[node[o].fa].ch[d2]=k;
+  node[k].fa=node[o].fa;
+  
+  node[k].ch[1^d]=o;
+  node[o].fa=k;
+  node[o].maintain();
+  node[k].maintain();
+}
+int top[N+M];
+void splay(int cur){
+  top[0]=0;
+  while(cur){
+    top[++top[0]]=cur;
+    cur=node[cur].fa;
+  }
+  cur=top[1];
+  if(top[0]>1){
+    node[cur].pfa=node[top[top[0]]].pfa;
+    node[top[top[0]]].pfa=0;
+  }
+  RREP(i,top[0],1)
+    node[top[i]].pushdown();
+  int fa,gfa,d1,d2;
+  while(node[cur].fa){
+    fa=node[cur].fa,gfa=node[fa].fa;
+    d1=node[gfa].ch[1]==fa,d2=node[fa].ch[1]==cur;
+    if(!gfa){
+      rotate(fa,d2);
+    }else{
+      if(d1==d2){rotate(gfa,d1);rotate(fa,d2);}
+      else{rotate(fa,d2);rotate(gfa,d1);}
+    }
+  }
+  node[cur].pushdown();
+}
+void access(int u){
+  for(int v=0; u; u=node[v].pfa){
+    splay(u);
+    node[u].change(v,u);
+    v=u;
+  }
+}
+void evert(int u){
+  access(u);
+  splay(u);
+  node[u].rev^=1;
+}
+void cut(int u,int v){
+  evert(u);
+  access(v);
+  splay(u);
+  node[u].change(0,u);
+  node[v].pfa=0;
+}
+void link(int u,int v){
+  evert(v);
+  splay(v);
+  access(u);
+  splay(u);
+  node[v].pfa=u;
+}
+int getmax(int u,int v){
+  evert(u);
+  access(v);
+  splay(v);
+  return node[v].maxv;
+}
+int findmax(int ret){
+  while(node[ret].v!=node[ret].maxv){
+    node[ret].pushdown();
+    if(node[node[ret].ch[0]].maxv==node[ret].maxv)
+      ret=node[ret].ch[0];
+    else 
+      ret=node[ret].ch[1];
+  }
+  return ret;
+}
+
+int n,m,Q;
+struct Query{int k,x,y;}q[N];
+struct E{int u,v,w;bool operator<(const E& rhs)const{return w<rhs.w;}}e[M];
+map<int,int> id[N];
+int del[M],ans[N];
+int main(){
+#ifdef QWERTIER
+  freopen("in","r",stdin);
+#endif
+  n=getint();m=getint();Q=getint();
+  REP(i,1,n)pa[i]=i;
+  REP(i,1,m){ e[i].u=getint();e[i].v=getint();e[i].w=getint();}
+  sort(e+1,e+m+1);
+  REP(i,1,m)id[e[i].u][e[i].v]=id[e[i].v][e[i].u]=i;
+  REP(i,1,Q){
+    q[i].k=getint();q[i].x=getint();q[i].y=getint();
+    if(q[i].k==2)
+      del[id[q[i].x][q[i].y]]=1;
+  }
+  REP(i,1,m){
+    node[i+n].v=node[i+n].maxv=e[i].w;
+    if(del[i])continue;
+    if(findset(e[i].u)!=findset(e[i].v)){
+      pa[pa[e[i].u]]=pa[e[i].v];
+      link(e[i].u,i+n);
+      link(e[i].v,i+n);
+    }
+  }
+  RREP(i,Q,1){
+    int &k=q[i].k,&x=q[i].x,&y=q[i].y;
+    if(k==1){
+      ans[i]=getmax(x,y);
+    }else{
+      int maxw=getmax(x,y);
+      if(maxw<=e[id[x][y]].w)continue;
+      else{
+        splay(y);
+        int u=findmax(y);
+        splay(u);
+        cut(e[u-n].u,u);
+        cut(e[u-n].v,u);
+        link(x,n+id[x][y]);
+        link(y,n+id[x][y]);
+      }
+    }
+  }
+  REP(i,1,Q)if(q[i].k==1)printf("%d\n",ans[i]);
+  return 0;
+}
+
+\end{lstlisting}

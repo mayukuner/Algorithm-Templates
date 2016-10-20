@@ -1,0 +1,10 @@
+# emacs temporary files
+\#*\#
+*~
+
+# latex temporary files
+*.aux
+*.log
+*.lof
+*.out
+*.toc

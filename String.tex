@@ -1,0 +1,131 @@
+\section{字符串}
+
+\subsection{KMP算法}
+
+\begin{lstlisting}
+namespace KMP {
+int fa[L];
+void get_fa(char *s, int n) {
+  int j = fa[0] = -1;
+  FOR (i, n - 1) {
+    while (j != -1 && s[j + 1] != s[i])
+      j = fa[j];
+    if (s[j + 1] == s[i])
+      j++;
+    fa[i] = j;
+  }
+}
+int find(char *s, int n, char *t, int m) {
+  int j = -1, ret = 0;
+  REP (i, m) {
+    while (j != -1 && s[j + 1] != t[i])
+      j = fa[j];
+    if (s[j + 1] == t[i])
+      j++;
+    if (j == n - 1) {
+      ret++;
+      j = fa[j];
+    }
+  }
+  return ret;
+}
+}
+\end{lstlisting}
+
+\subsection{AC自动机}
+
+\begin{lstlisting}
+namespace AC {
+int sz, ch[SZ][26], val[SZ];
+void insert(char *str, int v) {
+  int u = 0, len = 0;
+  while (*str) {
+    int c=(*str++)-'a';
+    len++;
+    if (!ch[u][c]) {
+      ch[u][c]=++sz;
+      memset(ch[sz], 0, sizeof(ch[sz]));
+      val[sz] = 0;
+    }
+    u = ch[u][c];
+  }
+  val[u] += v;
+}
+int fr, rr, que[SZ], fa[SZ], lst[SZ];
+void calc_fa() {
+  fr=0,rr=-1;
+  REP (i, 26) {
+    if(ch[0][i]) {
+      que[++rr]=ch[0][i];
+      fa[ch[0][i]] = 0;
+      lst[ch[0][i]] = 0;
+    }
+  }
+  while (fr <= rr) {
+    int r = que[fr++];
+    REP (i,26) {
+      int u=ch[r][i];
+      if (!u) {
+        ch[r][i] = ch[fa[r]][i];
+        continue;
+      }
+      fa[u] = ch[fa[r]][i];
+      lst[u] = val[fa[u]] ? fa[u] : lst[fa[u]];
+      val[u] += val[lst[u]];
+      que[++rr]=u;
+    }
+  }
+}
+void init() {
+  sz = 0;
+  memset(ch[0], 0, sizeof(ch[0]));
+  val[0] = 0;
+  lst[0] = 0;
+}
+}
+\end{lstlisting}
+
+\subsection{后缀数组}
+\begin{lstlisting}
+namespace SA{
+int sa[N], cnt[N], *x = new int[N], *y = new int[N];
+inline bool eq(int i,int j){
+  return (i>=n && j>=n)||(i<n && j<n && y[i]==y[j]);
+}
+void calc_sa(){
+  memset(cnt, 0, sizeof(int)*m);
+  REP(i,n)cnt[x[i]=s[i]-'a']++;
+  FOR(i,m-1)cnt[i]+=cnt[i-1];
+  for(int i=n-1; i>=0; i--)sa[--cnt[x[i]]]=i;
+  for(int k=1; k<=n; k<<=1){
+    int p=0;
+    for(int i=n-k; i<n; i++)y[p++]=i;
+    REP(i,n)if(sa[i]>=k)y[p++]=sa[i]-k;
+
+    REP(i,m)cnt[i]=0;
+    REP(i,n)cnt[x[y[i]]]++;
+    FOR(i,m-1)cnt[i]+=cnt[i-1];
+    for(int i=n-1; i>=0; i--)sa[--cnt[x[y[i]]]]=y[i];
+
+    swap(x,y);
+    x[sa[0]]=0;
+    p=1;
+    FOR(i,n-1)
+      x[sa[i]]=eq(sa[i],sa[i-1])&&eq(sa[i]+k,sa[i-1]+k)?p-1:p++;
+    if(p>=n)break;
+    m=p;
+  }
+}
+int h[N];
+void calc_hi(){
+  int j,k=0;
+  REP(i,n){
+    if(x[i]==0){k=0;continue;}
+    if(k)k--;
+    j=sa[x[i]-1];
+    while(s[i+k]==s[j+k])k++;
+    h[x[i]]=k;
+  }
+}
+}
+\end{lstlisting}

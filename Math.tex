@@ -1,0 +1,423 @@
+\section{数学}
+
+\subsection{素数表（NTT专用）}
+
+\begin{table}[htbp]
+  \vspace{1cm}
+  \centering
+  \begin{tabular}{ c | c | c | c }
+    \hline
+        {\bf $r \cdot 2^k$} & {\bf r} & {\bf k} & {\bf g}\\
+        
+        \hline
+
+        3	& 1	& 1	& 2 \\
+        \hline
+        5	& 1	& 2	& 2 \\
+        \hline
+        17	&	1	& 4	&3 \\
+        \hline
+        97	&	3	&	5	&5 \\
+        \hline
+        193	&	3	&	6	&5 \\
+        \hline
+        257	&	1	&	8	&3 \\
+        \hline
+        7681	&	15	&	9	&17 \\
+        \hline
+        12289	&	3	&	12	&11 \\
+        \hline
+        40961	&	5	&	13	&3 \\
+        \hline
+        65537	&	1	&	16	&3 \\
+        \hline
+        786433	&	3	&	18	&10 \\
+        \hline
+        5767169	&	11	&	19	&3 \\
+        \hline
+        7340033	&	7	&	20	&3 \\
+        \hline
+        23068673	&	11	&21	&3 \\
+        \hline
+        104857601	&	25	&22	&3 \\
+        \hline
+        167772161	&	5	&25	&3 \\
+        \hline
+        469762049	&	7	&26	&3 \\
+        \hline
+        1004535809	&	479	&21	&3 \\
+        \hline
+        2013265921	&	15	&27	&31 \\
+        \hline
+        2281701377	&	17	&27	&3 \\
+        \hline
+        3221225473	&	3	&30	&5 \\
+        \hline
+        75161927681	&	35	&31	&3 \\
+        \hline
+        77309411329	&	9	&33	&7 \\
+        \hline
+  \end{tabular}
+\end{table}
+\clearpage
+\begin{table}[htbp]
+  \vspace{1cm}
+  \centering
+  \begin{tabular}{ c | c | c | c }
+    \hline
+    {\bf $r \cdot 2^k$} & {\bf r} & {\bf k} & {\bf g}\\
+    \hline
+    206158430209	&	3	&36	&22 \\
+    \hline
+    2061584302081	&	15	&37	&7 \\
+    \hline
+    2748779069441	&	5	&39	&3 \\
+    \hline
+    1231453023109121	&35	&45	&	3 \\
+    \hline
+    6597069766657	&	3	&41	&5 \\
+    \hline
+    39582418599937	&	9	&42	&5 \\
+    \hline
+    79164837199873	&	9	&43	&5 \\
+    \hline
+    263882790666241	&	15	&44	&7 \\
+    \hline
+    1337006139375617	&19	&46	&	3 \\
+    \hline
+    3799912185593857	&27	&47	&	5 \\
+    \hline
+    4222124650659841	&15	&48	&	19 \\
+    \hline
+    7881299347898369	&7	&	50	&	6 \\
+    \hline
+    31525197391593473	&7	&	52	&	3 \\
+    \hline
+    180143985094819841	&5	&	55	&	6 \\
+    \hline
+    1945555039024054273	&27	&	56	&	5 \\
+    \hline
+    4179340454199820289	&29	&	57	&	3 \\
+    \hline
+
+  \end{tabular}
+\end{table}
+
+\subsection{NTT}
+
+\begin{lstlisting}
+#define MOD 65970697685434369ll
+namespace NTT {
+int m;
+#define eps (1e-15)
+LL fMul(LL t, LL p) {
+  LL ret = t * p - (LL)((long double)t/MOD*p+eps)*MOD;
+  if (ret < 0)
+    return (ret % MOD + MOD) % MOD;
+  else
+    return ret;
+}
+LL fPow(LL t, LL p) {
+  LL ret = 1;
+  while (p) {
+    if (p & 1)
+      ret = fMul(ret, t);
+    t = fMul(t, t);
+    p >>= 1;
+  }
+  return ret;
+}
+int rev[N];
+LL g = 19;
+void ntt(LL *in, LL *out, int n, int flag) {  // flag = 0 if ntt, 1 if intt
+  memset(rev, 0, sizeof(rev));
+  REP (i, (1<<m)) {
+    REP (j, m) {
+      rev[i] |= ((i>>j)&1) << (m-j-1);
+    }
+  }
+  for (int i = 0; i < n; i++) 
+    out[rev[i]] = in[i];
+  for (int s = 1; (1 << s) <= n; s++) {
+    int m = 1 << s, m_2 = m /2;
+    LL wm;
+    if (!flag)
+      wm = fPow(g, (MOD - 1) / m);
+    else
+      wm = fPow(fPow(g, (MOD - 1) / m), MOD - 2);
+    for (int k = 0; k < n; k+=m) {
+      LL w = 1;
+      for (int j = 0; j < m_2; j++) {
+        LL t = fMul(w, out[k + j + m_2]),
+            u = out[k + j];
+        out[k + j] = (u + t) % MOD;
+        out[k + j + m_2] = (u - t + MOD) % MOD;
+        w = fMul(w, wm);
+      }
+    }
+  }
+  if (flag) {
+    LL inv = fPow(n, MOD - 2);
+    REP (i, n) {
+      out[i] = fMul(out[i], inv);
+    }
+  }
+}
+}
+\end{lstlisting}
+
+\subsection{FFT}
+
+\begin{lstlisting}
+namespace FFT {
+int L;
+struct cp {
+  double r,i;
+  cp(){r=i=0;}
+  cp(double _r,double _i):r(_r),i(_i){}
+  cp operator*(cp &t){return cp(r*t.r-i*t.i,i*t.r+t.i*r);}
+  cp operator+(cp &t){return cp(r+t.r,i+t.i);}
+  cp operator-(cp &t){return cp(r-t.r,i-t.i);}
+}; 
+const double PI=3.1415926535897932384626;
+cp tmp[N];
+int rev[N];
+void fft(cp *a,int flag) {
+  REP(i,(1<<L))tmp[i]=a[rev[i]];
+  REP(i,(1<<L))a[i]=tmp[i];
+  for(int k=2; k<=(1<<L); k<<=1){
+    cp wn(cos(2*PI/k),flag*sin(2*PI/k));
+    for(int i=0; i<(1<<L); i+=k){
+      cp w(1,0),x,y;
+      for(int j=i; j<i+k/2; j++){
+        x=a[j];
+        y=a[j+k/2]*w;
+        a[j]=x+y;
+        a[j+k/2]=x-y;
+        w=w*wn;
+      }
+    }
+  }
+  if(flag==-1)REP(i,(1<<L))a[i].r/=(1<<L);
+}
+void calc_rev() {
+  REP(i,(1<<L)){
+    rev[i] = 0;
+    REP(j,L) {
+      if((i>>j)&1)
+        rev[i]|=(1<<(L-1-j));
+    }
+  }
+}
+}
+\end{lstlisting}
+
+\subsection{FWT}
+\begin{lstlisting}
+namespace FWT {
+template <typename T>
+void or_fwt(T X[], int l, int r) {
+  if (l == r)
+    return;
+  int m = (l + r) >> 1;
+  or_fwt(X, l, m); or_fwt(X, m + 1, r);
+  for (int i = 0; i <=  m - l; i++) {
+    X[m + 1 + i] += X[l + i];
+  }
+}
+template <typename T>
+void or_ifwt(T X[], int l, int r) {
+  if (l == r)
+    return;
+  int m = (l + r) >> 1;
+  or_ifwt(X, l, m); or_ifwt(X, m + 1, r);
+  for (int i = 0; i <=  m - l; i++) {
+    X[m + 1 + i] -= X[l + i];
+  }
+}
+template <typename T>
+void and_fwt(T X[], int l, int r) {
+  if (l == r)
+    return;
+  int m = (l + r) >> 1;
+  and_fwt(X, l, m); and_fwt(X, m + 1, r);
+  for (int i = 0; i <=  m - l; i++) {
+    X[l + i] += X[m + 1 + i];
+  }
+}
+template <typename T>
+void and_ifwt(T X[], int l, int r) {
+  if (l == r)
+    return;
+  int m = (l + r) >> 1;
+  and_ifwt(X, l, m); and_ifwt(X, m + 1, r);
+  for (int i = 0; i <=  m - l; i++) {
+    X[l + i] -= X[m + 1 + i];
+  }
+}
+template <typename T>
+void xor_fwt(T X[], int l, int r) {
+  if (l == r)
+    return;
+  int m = (l + r) >> 1;
+  xor_fwt(X, l, m); xor_fwt(X, m + 1, r);
+  for (int i = 0; i <=  m - l; i++) {
+    X[l + i] += X[m + 1 + i];
+    X[m + 1 + i] = X[l + i] - 2 * X[m + 1 + i];
+  }
+}
+template <typename T>
+void xor_ifwt(T X[], int l, int r) {
+  if (l == r)
+    return;
+  int m = (l + r) >> 1;
+  for (int i = 0; i <=  m - l; i++) {
+    X[l + i] += X[m + 1 + i];
+    X[m + 1 + i] = X[l + i] - 2 * X[m + 1 + i];
+    X[l+i] /= 2;
+    X[m + 1 + i] /= 2;
+  }
+  xor_ifwt(X, l, m); xor_ifwt(X, m + 1, r);
+}
+}
+\end{lstlisting}
+
+\subsection{拓展欧几里得}
+\begin{lstlisting}
+LL exgcd(LL a, LL b, LL &x, LL &y) {
+  if (a==0&&b==0)return -1;
+  if (b==0) {x=1;y=0;return a;}
+  LL d=extend_gcd(b,a%b,y,x);
+  y-=a/b*x;
+  return d;
+}
+\end{lstlisting}
+
+
+\subsection{米勒罗宾素数测试}
+
+\begin{lstlisting}
+const int S = 8;
+long long mult_mod(long long a,long long b,long long c) {
+  a %= c;
+  b %= c;
+  long long ret = 0;
+  long long tmp = a;
+  while(b) {
+    if(b & 1) {
+      ret += tmp;
+      if(ret > c)ret -= c;
+    }
+    tmp <<= 1;
+    if(tmp > c)tmp -= c;
+    b >>= 1;
+  }
+  return ret;
+}
+long long pow_mod(long long a,long long n,long long mod) {
+  long long ret = 1;
+  long long temp = a%mod;
+  while(n) {
+    if(n & 1)ret = mult_mod(ret,temp,mod);
+    temp = mult_mod(temp,temp,mod);
+    n >>= 1;
+  }
+  return ret;
+}
+bool check(long long a,long long n,long long x,long long t) {
+  long long ret = pow_mod(a,x,n);
+  long long last = ret;
+  for(int i = 1;i <= t;i++) {
+    ret = mult_mod(ret,ret,n);
+    if(ret == 1 && last != 1 && last != n-1)return true;//合数
+    last = ret;
+  }
+  if(ret != 1)return true;
+  else return false;
+}
+bool Miller_Rabin(long long n) {
+  if( n < 2)return false;
+  if( n == 2)return true;
+  if( (n&1) == 0)return false;//偶数
+  long long x = n - 1;
+  long long t = 0;
+  while( (x&1)==0 ){x >>= 1; t++;}
+  srand(time(NULL));
+  for(int i = 0;i < S;i++) {
+    long long a = rand()%(n-1) + 1;
+    if( check(a,n,x,t) )
+      return false;
+  }
+  return true;
+}
+\end{lstlisting}
+
+\subsection{质因数分解}
+
+\begin{lstlisting}
+long long factor[100];//质因素分解结果（刚返回时时无序的）
+int tol;//质因数的个数，编号0~tol-1
+long long gcd(long long a,long long b) {
+  long long t;
+  while(b) {
+    t = a;
+    a = b;
+    b = t%b;
+  }
+  if(a >= 0)return a;
+  else return -a;
+}
+// 找出一个因子
+long long pollard_rho(long long x,long long c) {
+  long long i = 1, k = 2;
+  srand(time(NULL));
+  long long x0 = rand()%(x-1) + 1;
+  long long y = x0;
+  while(1) {
+    i ++;
+    x0 = (mult_mod(x0,x0,x) + c)%x;
+    long long d = gcd(y - x0,x);
+    if( d != 1 && d != x)return d;
+    if(y == x0)return x;
+    if(i == k){y = x0; k += k;}
+  }
+}
+//对 n进行素因子分解，存入factor. k设置为107左右即可
+void findfac(long long n,int k) {
+  if(n == 1)return;
+  if(Miller_Rabin(n)) {
+    factor[tol++] = n;
+    return;
+  }
+  long long p = n;
+  int c = k;
+  while( p >= n)
+    p = pollard_rho(p,c--);//值变化，防止死循环k
+  findfac(p,k);
+  findfac(n/p,k);
+}
+\end{lstlisting}
+
+\subsection{高斯消元}
+\begin{lstlisting}
+bool gauss(double *m[N], int n) {
+  for(int i=0; i<n; i++){
+    int c=i;
+    for(int j=i; j<n; j++)if(fabs(m[j][i])>fabs(m[c][i]))c=j;
+    if (fabs(m[c][i]) < eps)
+      return false;
+    for(int j=0; j<=n; j++)swap(m[i][j],m[c][j]);
+    for(int j=i+1; j<n; j++){
+      double f=m[j][i]/m[i][i];
+      for(int k=n; k>=i; k--)
+        m[j][k]-=m[j][i]*m[i][k]/m[i][i];
+    }
+  }
+  for(int i=n-1; i>=0; i--){
+    for(int j=i+1; j<n; j++)
+      m[i][n]-=m[j][n]*m[i][j];
+    m[i][n]/=m[i][i];
+  }
+  return true;
+}
+\end{lstlisting}
